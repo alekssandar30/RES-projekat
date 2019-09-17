@@ -5,7 +5,7 @@ Sistem sadrži 4 komponente:
     3. Writter  
     4. Reader
     
-    ![struktura](https://user-images.githubusercontent.com/33751361/65040689-42f04180-d955-11e9-964c-bfb752e7bcbd.PNG)
+   
  
  
 Dumping Buffer  Dumping Buffer je komponenta koja služi za privremeno čuvanje podataka pre nego što ih prosledi Historical komponenti. Dumping Buffer prima podatke od komponente Writter, od koje dobija sve podatke.  

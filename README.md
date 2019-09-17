@@ -1,45 +1,56 @@
-**Edit a file, create a new file, and clone from Bitbucket in under 2 minutes**
+ 
+Sistem sadrži 4 komponente:  
+    1. Dumping Buffer 
+    2. Historical
+    3. Writter  
+    4. Reader
+    
+    
+ 
+ 
+Dumping Buffer  Dumping Buffer je komponenta koja služi za privremeno čuvanje podataka pre nego što ih prosledi Historical komponenti. Dumping Buffer prima podatke od komponente Writter, od koje dobija sve podatke.  
+Dumping Buffer čuva podatke u obliku kolekcije – CollectionDescription (CD). 
 
-When you're done, you can delete the content in this README and update the file with details for others getting started with your repository.
+Prilikom slanja podataka Historical komponenti, Dumping Buffer kreira posebnu strukturu DeltaCD.  
+  DeltaCD sadrži:  
+• Transaction ID  • CollectionDescription Add  • CollectionDescription Update  • CollectionDescription Remove  DeltaCD sadrži 3 CollectionDescription strukture, po jednu za operacije dodavanja, ažuriranja i brisanja iz skladišta.  
 
-*We recommend that you open this README in another tab as you perform the tasks below. You can [watch our video](https://youtu.be/0ocf7u76WSo) for a full demo of all the steps in this tutorial. Open the video in a new tab to avoid leaving Bitbucket.*
 
----
+Historical  Historical je komponenta koja služi za perzistenciju podataka dobijenih od Dumping Buffer komponente.  Historical komponenta podatke dobijene od Dumping Buffer komponente snima u bazu podataka. S
+ 
+ 
+Writter  Writter je komponenta koja služi za upisivanje novih podataka u Dumping Buffer. Writter komponenta prima nove informacije svake 2 sekunde i to prosledjuje Dumping Buffer -u. Writter ima i mogućnost 
+direktnog upisa u istoriju, preko Historical komponente. 
 
-## Edit a file
+Scenario rada aplikacije  Writter komponenta prosleđuje podatke na 2 načina:  
+1. Podatke šalje na svake 2 sekundi Dumping Buffer komponenti (WriteToDumpingBuffer)  2. Podatke šalje direktno za skladištenje Historical komponennti (ManualWriteToHistory)  
+Dumping Buffer komponenta dobijene podatke prepakuje u svoju strukturu sa kojom rukuje, pri tome dodeljuje jedinstven ID. Dataset se dodeljuje prema Code-u podataka koji su primljeni.  
+Dumping Buffer komponenta u svojoj strukturi skladišti podatke u memoriji (CD struktura). Ukoliko od Writter komponente pristignu podaci koji imaju isti Code kao i oni što se nalaze u Dumping Buffer komponenti, njihova vrednost (Value) u Dumping Buffer komponenti treba da se ažurira na novu vrednost koja je stigla od Writter-a.  
+Kad Dumping Buffer u svojoj kolekciji nakupi 2 različite vrednosti u okviru istog dataset-a, tada su podaci spremni za slanje i pakuju se u DeltaCD komponentu, zatim se oslobađa CD struktura za prijem novih elemenata. Posle pristiglih 10 vrednosti iz Writter komponente DeltaCD se prosleđuje Historical komponenti (WriteToHistory). Tom prilikom ukoliko DeltaCD nema nijedan od Collection Description objekata (Add, Update ili Remove) slanje će se odložiti za još 10 prijema podataka od Writter komponente. Ukoliko pre slanja DeltaCD komponente, Dumping Buffer nakupi opet 2 različite vrednosti u okviru istog dataset-a, tada će ti podaci čekati, i ukoliko je potrebno ažurirati se sa Writter-a dok se ne pošalje DeltaCD komponenta i tada je moguće upisati nove elemente.  
+Za potrebe DeltaCD komponente potrebno je voditi računa koji elementi su novi i stižu za Add, koji za Update, a koji za Remove u Dumping Bufferu. Iz razloga što Writter ima mogućnost manuelnog upisa u istoriju, Dumping Buffer u nekim slučajevima ne može da zna da li postoji element u istoriji i pri tome Historical treba da čuva informaciju da je podatak stigao preko manuelnog upisa, i da će jedino validno biti da se ažurira preko CollectionDescription Add iz Dumping Buffera, dok nije validno da Dumping Buffer pošalje Update i Remove za taj element jer nema informaciju da li je upisan.  
+Historical komponenta prima sadržaj od Dumping Buffer komponente i prepakuje strukturu od Dumping Buffer komponente, DeltaCD, u svoju internu strukturu – LD, tom prilikom se mapira DumpingValue na HistoricalValue.  
+Historical komponenta treba da proveri da li su podaci validni – da li su dataset-ovi odgovarajući i u skladu sa Code-ovima koji su prosleđeni u okviru dataset-a.  
+Historical komponenta treba da proveri da li dobijeni podaci treba da budu upisanu u .XML fajl. Uslov da se podatak upiše u .XML fajl je da izlazi iz Deadband-a.  
+Deadband predstavlja uslov da li je potrebno podatak upisati u bazu podataka.  
+Deadband iznosi 2% i značiće da ukoliko pristigli podatak, već postoji u bazi, ukoliko nova njegova vrednost je veća od 2% od stare vrednosti, tada će biti upisana nova vrednost. Ukoliko nova vrednost ne izlazi iz okvira od 2% od stare vrednosti tada nova vrednost ne treba da bude upisana u bazu podataka.  
+Jedini izuzetak iz Deadband-a je Code – CODE_DIGITAL, za ovaj Code se uvek upisuje prosleđena vrednost i ne proverava se Deadband.  
+Prilikom upisa podatka u bazu, Historical komponenta će generisati timestamp sa vremenom upisa tog podatka.  
+Reader komponenta treba da iščita vrednosti iz Historical komponenti po vremenskom intervalu za traženi Code (GetChangesForInterval).  
+Implementirati Logger, koji će beležiti sve aktivnosti koje se dešavaju u ostalim komponentama.  
+  
+Lista Code-ova:
+1. CODE_ANALOG
+2. CODE_DIGITAL
+3. CODE_CUSTOM
+4. CODE_LIMITSET 
+5. CODE_SINGLENOE
+6. CODE_MULTIPLENODE 
+7. CODE_CONSUMER
+8. CODE_SOURCE
+9. CODE_MOTION 
+10. CODE_SENSOR  
 
-You’ll start by editing this README file to learn how to edit a file in Bitbucket.
-
-1. Click **Source** on the left side.
-2. Click the README.md link from the list of files.
-3. Click the **Edit** button.
-4. Delete the following text: *Delete this line to make a change to the README from Bitbucket.*
-5. After making your change, click **Commit** and then **Commit** again in the dialog. The commit page will open and you’ll see the change you just made.
-6. Go back to the **Source** page.
-
----
-
-## Create a file
-
-Next, you’ll add a new file to this repository.
-
-1. Click the **New file** button at the top of the **Source** page.
-2. Give the file a filename of **contributors.txt**.
-3. Enter your name in the empty file space.
-4. Click **Commit** and then **Commit** again in the dialog.
-5. Go back to the **Source** page.
-
-Before you move on, go ahead and explore the repository. You've already seen the **Source** page, but check out the **Commits**, **Branches**, and **Settings** pages.
-
----
-
-## Clone a repository
-
-Use these steps to clone from SourceTree, our client for using the repository command-line free. Cloning allows you to work on your files locally. If you don't yet have SourceTree, [download and install first](https://www.sourcetreeapp.com/). If you prefer to clone from the command line, see [Clone a repository](https://confluence.atlassian.com/x/4whODQ).
-
-1. You’ll see the clone button under the **Source** heading. Click that button.
-2. Now click **Check out in SourceTree**. You may need to create a SourceTree account or log in.
-3. When you see the **Clone New** dialog in SourceTree, update the destination path and name if you’d like to and then click **Clone**.
-4. Open the directory you just created to see your repository’s files.
-
-Now that you're more familiar with your Bitbucket repository, go ahead and add a new file locally. You can [push your change back to Bitbucket with SourceTree](https://confluence.atlassian.com/x/iqyBMg), or you can [add, commit,](https://confluence.atlassian.com/x/8QhODQ) and [push from the command line](https://confluence.atlassian.com/x/NQ0zDQ).
+Spisak DataSet-ova po Code-ovima:  • DataSet = 1 – CODE_ANALOG, CODE_DIGITAL  • DataSet = 2 – CODE_CUSTOM, CODE_LIMITSET  • DataSet = 3 – CODE_SINGLENODE, CODE_MULTIPLENODE  • DataSet = 4 – CODE_CONSUMER, CODE_SOURCE  • DataSet = 5 – CODE_MOTION, CODE_SENSOR  *Value ima strukturu: 
+  ● Timestamp (datum plus vreme)
+  ● ID geografskog područja
+  ● Potrošnja u mW/h 
